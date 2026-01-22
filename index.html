@@ -1,4 +1,8 @@
-<div class="clay-county-news-box calendar-bulletin">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Clay County Bulletin</title>
     <style>
         .clay-county-news-box.calendar-bulletin {
             max-width: 600px;
@@ -60,28 +64,28 @@
         }
         .event-desc { font-size: 14px; line-height: 1.4; color: #444; }
     </style>
+</head>
+<body>
 
+<div class="clay-county-news-box calendar-bulletin">
     <div class="calendar-header">
         <h2>This Week in Clay Co.</h2>
         <span style="font-size: 11px; text-transform: uppercase; letter-spacing: 3px; color: #666;">Clay City • Flora • Louisville • Sailor Springs • Xenia</span>
     </div>
-
     <div id="bulletin-list">
-        <p style="text-align:center; font-family:'Times New Roman'; font-style:italic;">Gathering latest news...</p>
+        <p style="text-align:center;">Syncing with Calendar...</p>
     </div>
 </div>
 
 <script>
-async function syncBulletin() {
+async function loadBulletin() {
+    // Your specific API Key and Calendar ID
     const API_KEY = 'AIzaSyBZ0TIaGkEQDYLFeIfC0_zTygolYEZd3Oc'; 
     const CAL_ID = 'ceab82d01e29c237da2e761555f2d2c2da76431b94e0def035ff04410e2cd71d@group.calendar.google.com';
+    const now = new Date().toISOString();
     
-    // Set timeMin to the beginning of TODAY to catch current ongoing events
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const timeMin = today.toISOString();
-    
-    const url = `https://www.googleapis.com/calendar/v3/calendars/${CAL_ID}/events?key=${API_KEY}&timeMin=${timeMin}&maxResults=5&singleEvents=true&orderBy=startTime`;
+    // Requesting next 5 events, ordered by date
+    const url = `https://www.googleapis.com/calendar/v3/calendars/${CAL_ID}/events?key=${API_KEY}&timeMin=${now}&maxResults=5&singleEvents=true&orderBy=startTime`;
 
     try {
         const response = await fetch(url);
@@ -89,7 +93,7 @@ async function syncBulletin() {
         const container = document.getElementById('bulletin-list');
 
         if (!data.items || data.items.length === 0) {
-            container.innerHTML = "<p style='text-align:center;'>No events found for this week.</p>";
+            container.innerHTML = "<p style='text-align:center;'>No upcoming events found.</p>";
             return;
         }
 
@@ -100,19 +104,17 @@ async function syncBulletin() {
             const day = start.getDate();
             const month = start.toLocaleString('en-US', { month: 'short' });
             
-            // Town detection based on event title or description
             let town = "Clay County";
-            const fullText = (event.summary + (event.description || "")).toUpperCase();
-            if (fullText.includes("FLORA")) town = "Flora";
-            else if (fullText.includes("LOUISVILLE")) town = "Louisville";
-            else if (fullText.includes("XENIA")) town = "Xenia";
-            else if (fullText.includes("CLAY CITY")) town = "Clay City";
+            const summary = event.summary.toUpperCase();
+            if (summary.includes("FLORA")) town = "Flora";
+            else if (summary.includes("LOUISVILLE")) town = "Louisville";
+            else if (summary.includes("XENIA")) town = "Xenia";
+            else if (summary.includes("CLAY CITY")) town = "Clay City";
 
             const timeLabel = event.start.dateTime 
                 ? start.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) 
                 : 'All Day';
 
-            // Clean description
             let desc = (event.description || "Community event info.")
                         .replace(/<[^>]*>?/gm, '')
                         .replace(/\bhttps?:\/\/\S+/gi, '')
@@ -133,8 +135,10 @@ async function syncBulletin() {
             `;
         });
     } catch (err) {
-        document.getElementById('bulletin-list').innerHTML = "<p style='text-align:center;'>Bulletin currently unavailable.</p>";
+        document.getElementById('bulletin-list').innerHTML = "<p style='text-align:center;'>Sync failed.</p>";
     }
 }
-syncBulletin();
+loadBulletin();
 </script>
+</body>
+</html>
