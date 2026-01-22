@@ -1,0 +1,139 @@
+<div class="clay-county-news-box calendar-bulletin">
+    <style>
+        .clay-county-news-box.calendar-bulletin {
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 25px;
+            border: 1px solid #222;
+            background-color: #fffdf5;
+            box-shadow: 6px 6px 0px #222;
+            font-family: Arial, sans-serif;
+        }
+        .calendar-header {
+            text-align: center;
+            border-top: 4px solid #222;
+            border-bottom: 2px solid #222;
+            padding: 15px 0;
+            margin-bottom: 25px;
+        }
+        .calendar-header h2 {
+            font-family: "Times New Roman", Times, serif !important;
+            font-weight: 900 !important;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin: 0 !important;
+            color: #222 !important;
+            font-size: 28px !important;
+        }
+        .event-entry {
+            display: flex;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px dashed #999;
+        }
+        .event-entry:last-child { border-bottom: none; }
+        .event-date-box {
+            min-width: 70px;
+            text-align: center;
+            background: #222;
+            color: #fff;
+            padding: 10px 5px;
+            height: fit-content;
+            margin-right: 20px;
+        }
+        .event-day { font-size: 22px; font-weight: bold; display: block; line-height: 1; }
+        .event-month { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
+        .event-info h4 {
+            font-family: "Times New Roman", Times, serif !important;
+            font-size: 19px !important;
+            font-weight: bold !important;
+            margin: 0 0 5px 0 !important;
+            color: #222 !important;
+        }
+        .event-meta {
+            font-size: 12px;
+            color: #d9534f;
+            text-transform: uppercase;
+            font-weight: bold;
+            display: block;
+            margin-bottom: 5px;
+        }
+        .event-desc { font-size: 14px; line-height: 1.4; color: #444; }
+    </style>
+
+    <div class="calendar-header">
+        <h2>This Week in Clay Co.</h2>
+        <span style="font-size: 11px; text-transform: uppercase; letter-spacing: 3px; color: #666;">Clay City • Flora • Louisville • Sailor Springs • Xenia</span>
+    </div>
+
+    <div id="bulletin-list">
+        <p style="text-align:center; font-family:'Times New Roman'; font-style:italic;">Gathering latest news...</p>
+    </div>
+</div>
+
+<script>
+async function syncBulletin() {
+    // Using your established API Key and Calendar ID
+    const API_KEY = 'AIzaSyBZ0TIaGkEQDYLFeIfC0_zTygolYEZd3Oc'; 
+    const CAL_ID = 'ceab82d01e29c237da2e761555f2d2c2da76431b94e0def035ff04410e2cd71d@group.calendar.google.com';
+    const now = new Date().toISOString();
+    
+    // Requesting exactly 5 events, ordered by start time
+    const url = `https://www.googleapis.com/calendar/v3/calendars/${CAL_ID}/events?key=${API_KEY}&timeMin=${now}&maxResults=5&singleEvents=true&orderBy=startTime`;
+
+    try {
+        const response = await fetch(url);
+        const data = await response.json();
+        const container = document.getElementById('bulletin-list');
+
+        if (!data.items || data.items.length === 0) {
+            container.innerHTML = "<p style='text-align:center;'>No upcoming events found on the 'Our Flora' calendar.</p>";
+            return;
+        }
+
+        container.innerHTML = ''; 
+
+        data.items.forEach(event => {
+            const start = new Date(event.start.dateTime || event.start.date);
+            const day = start.getDate();
+            const month = start.toLocaleString('en-US', { month: 'short' });
+            
+            // Town detection based on event title
+            let town = "Clay County";
+            const summary = event.summary.toUpperCase();
+            if (summary.includes("FLORA")) town = "Flora";
+            else if (summary.includes("LOUISVILLE")) town = "Louisville";
+            else if (summary.includes("XENIA")) town = "Xenia";
+            else if (summary.includes("CLAY CITY")) town = "Clay City";
+
+            // Use 'All Day' if no specific time is set (common for school events)
+            const timeLabel = event.start.dateTime 
+                ? start.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) 
+                : 'All Day';
+
+            // Clean up the description (remove URLs and HTML)
+            let desc = (event.description || "Community event info.")
+                        .replace(/<[^>]*>?/gm, '')
+                        .replace(/\bhttps?:\/\/\S+/gi, '')
+                        .substring(0, 100) + "...";
+
+            container.innerHTML += `
+                <div class="event-entry">
+                    <div class="event-date-box">
+                        <span class="event-day">${day}</span>
+                        <span class="event-month">${month}</span>
+                    </div>
+                    <div class="event-info">
+                        <span class="event-meta">${town} • ${timeLabel}</span>
+                        <h4>${event.summary}</h4>
+                        <p class="event-desc">${desc}</p>
+                    </div>
+                </div>
+            `;
+        });
+    } catch (err) {
+        document.getElementById('bulletin-list').innerHTML = "<p style='text-align:center;'>Bulletin sync failed. Please check connection.</p>";
+    }
+}
+syncBulletin();
+</script>
